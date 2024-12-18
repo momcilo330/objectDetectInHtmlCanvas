@@ -1,0 +1,113 @@
+<!-- https://entradas.atleticodemadrid.com/clubatleticodemadrid/es_ES/entradas/evento/38972/session/2301289/select?viewCode=V_lteb4 -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detect Green Rectangles</title>
+</head>
+
+<body>
+  <canvas id="myCanvas" width="500" height="500"></canvas>
+  <div style="display:none;">
+    <img id="source" src="./3.png" width="300" height="227" />
+  </div>
+  <script>
+    const canvas = document.getElementById("myCanvas");
+    const ctx = canvas.getContext("2d");
+    const image = document.getElementById("source");
+
+    image.addEventListener("load", (e) => {
+      ctx.drawImage(image, 0, 0);
+      const canvas1 = document.getElementById("myCanvas");
+      detectGreenRectsCenters(canvas1);
+    });
+
+    function detectGreenRectsCenters(canvas) {
+      const ctx = canvas.getContext("2d");
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+
+      const greenPixels = [];
+
+      // Loop through all pixels
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];     // Red
+        const g = data[i + 1]; // Green
+        const b = data[i + 2]; // Blue
+        const x = (i / 4) % canvas.width; // X position
+        const y = Math.floor(i / 4 / canvas.width); // Y position
+
+
+        /* if ((g > 165 && g < 200) && (r > 235) && (b > 11 && b < 51)) { // selected seat
+          greenPixels.push({ x, y });
+        } */
+
+        if ((g > 178 && g < 208) && (r > 119 && r < 139) && (b > 78 && b < 98)) { // available seat
+          greenPixels.push({ x, y });
+        }
+      }
+      console.log('greenPixels: ', greenPixels);
+      // Group pixels into rectangles and calculate centers
+      const centers = groupGreenRegionsAndFindCenters(greenPixels);
+
+      console.log("Centers of green rectangles:", centers);
+      return centers;
+    }
+
+    // Group nearby green pixels to identify rectangles and their centers
+    function groupGreenRegionsAndFindCenters(greenPixels) {
+      const visited = new Set();
+      const directions = [
+        [0, 1], [1, 0], [0, -1], [-1, 0],
+      ];
+
+      const centers = [];
+
+      function bfs(start) {
+        const queue = [start];
+        const pixels = [];
+        visited.add(`${start.x},${start.y}`);
+
+        while (queue.length > 0) {
+          const { x, y } = queue.shift();
+          pixels.push({ x, y });
+
+          // Explore neighbors
+          for (const [dx, dy] of directions) {
+            const nx = x + dx;
+            const ny = y + dy;
+            const key = `${nx},${ny}`;
+            if (!visited.has(key) && greenPixels.find(p => p.x === nx && p.y === ny)) {
+              visited.add(key);
+              queue.push({ x: nx, y: ny });
+            }
+          }
+        }
+
+        return pixels;
+      }
+
+      for (const pixel of greenPixels) {
+        const key = `${pixel.x},${pixel.y}`;
+        if (!visited.has(key)) {
+          const region = bfs(pixel);
+          const centerX =
+            region.reduce((sum, p) => sum + p.x, 0) / region.length;
+          const centerY =
+            region.reduce((sum, p) => sum + p.y, 0) / region.length;
+
+          centers.push({ x: Math.round(centerX), y: Math.round(centerY) });
+        }
+      }
+
+      return centers;
+    }
+
+
+  </script>
+
+</body>
+
+</html>
